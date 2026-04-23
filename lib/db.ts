@@ -6,7 +6,11 @@ declare global {
 }
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg(process.env.DIRECT_URL as string)
+  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL
+  if (!connectionString) {
+    throw new Error("DATABASE_URL or DIRECT_URL environment variable is required")
+  }
+  const adapter = new PrismaPg(connectionString)
   return new PrismaClient({ adapter } as any)
 }
 
