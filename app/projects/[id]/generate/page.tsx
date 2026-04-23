@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { createServerComponentClient } from "@/lib/supabase-server"
 import { db } from "@/lib/db"
 import { TaskGenerator } from "./task-generator"
-
+import { getProjectWithAccess } from "@/lib/project-access"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 
@@ -23,16 +23,18 @@ export default async function GenerateTasksPage({ params }: GenerateTasksPagePro
     redirect("/login")
   }
 
-  const project = await db.project.findUnique({
-    where: {
-      id,
-      userId: user.id,
-    },
-  })
+  const access = await getProjectWithAccess(id, user.id)
 
-  if (!project) {
+  if (!access) {
     redirect("/dashboard")
   }
+
+  // Only managers can generate tasks — redirect members to the board
+  if (access.role !== "MANAGER") {
+    redirect(`/projects/${id}/board`)
+  }
+
+  const project = access.project
 
   const tasksCount = await db.task.count({
     where: {
@@ -45,8 +47,8 @@ export default async function GenerateTasksPage({ params }: GenerateTasksPagePro
       <Link href="/dashboard" className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
       </Link>
-      <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
-      <p className="text-muted-foreground mb-8">{project.description}</p>
+      <h1 className="text-3xl font-bold mb-2">{project!.title}</h1>
+      <p className="text-muted-foreground mb-8">{project!.description}</p>
 
       {tasksCount > 0 ? (
         <div className="bg-muted p-6 rounded-lg mb-8">
@@ -54,12 +56,11 @@ export default async function GenerateTasksPage({ params }: GenerateTasksPagePro
           <p className="mb-4">
             This project already has {tasksCount} tasks. Generating new tasks will replace the existing ones.
           </p>
-          <TaskGenerator project={project} regenerate={true} />
+          <TaskGenerator project={{ id: project!.id, title: project!.title, description: project!.description }} regenerate={true} />
         </div>
       ) : (
-        <TaskGenerator project={project} regenerate={false} />
+        <TaskGenerator project={{ id: project!.id, title: project!.title, description: project!.description }} regenerate={false} />
       )}
     </div>
   )
 }
-

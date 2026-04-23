@@ -23,9 +23,10 @@ interface KanbanBoardProps {
     inProgress: Task[]
     done: Task[]
   }
+  role?: "MANAGER" | "MEMBER"
 }
 
-export function KanbanBoard({ projectId, columns }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, columns, role = "MANAGER" }: KanbanBoardProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [filter, setFilter] = useState<string>("all")

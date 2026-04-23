@@ -41,6 +41,8 @@ export async function POST(
       Project Title: ${project.title}
       Project Description: ${project.description}
       
+      Current Date: ${new Date().toISOString().split('T')[0]} (Use this as a reference point for realistic future deadlines)
+      
       For each task, provide:
       1. Task title (short and clear)
       2. Detailed description

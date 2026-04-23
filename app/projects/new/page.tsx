@@ -5,10 +5,10 @@ import { NewProjectForm } from "./new-project-form"
 export default async function NewProjectPage() {
   const supabase = await createServerComponentClient()
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect("/login")
   }
 
@@ -16,9 +16,8 @@ export default async function NewProjectPage() {
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-8">Create New Project</h1>
       <div className="max-w-2xl">
-        <NewProjectForm userId={session.user.id} />
+        <NewProjectForm userId={user.id} />
       </div>
     </div>
   )
 }
-

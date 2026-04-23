@@ -16,7 +16,8 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  const projects = await db.project.findMany({
+  // Fetch projects owned by the user
+  const ownedProjects = await db.project.findMany({
     where: {
       userId: user.id,
     },
@@ -30,6 +31,31 @@ export default async function DashboardPage() {
     },
   })
 
+  // Fetch projects shared with the user
+  // Fetch projects shared with the user (match by email)
+  const sharedMemberships = await db.projectMember.findMany({
+    where: {
+      email: user.email?.toLowerCase() || "",
+    },
+    include: {
+      project: {
+        include: {
+          _count: {
+            select: { tasks: true },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  })
+
+  const sharedProjects = sharedMemberships.map((m) => ({
+    ...m.project,
+    _memberRole: m.role,
+  }))
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
@@ -41,7 +67,7 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      {projects.length === 0 ? (
+      {ownedProjects.length === 0 ? (
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold mb-4">No projects yet</h2>
           <p className="text-muted-foreground mb-6">Create your first project to get started with AI task generation</p>
@@ -53,12 +79,23 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {ownedProjects.map((project) => (
+            <ProjectCard key={project.id} project={project} role="MANAGER" />
           ))}
+        </div>
+      )}
+
+      {/* Shared with me section */}
+      {sharedProjects.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Shared with me</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sharedProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} role="MEMBER" />
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
-

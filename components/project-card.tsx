@@ -3,7 +3,7 @@ import { format } from "date-fns"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, KanbanSquare, Sparkles } from "lucide-react"
+import { Calendar, KanbanSquare, Sparkles, Users } from "lucide-react"
 
 interface Project {
   id: string
@@ -17,15 +17,24 @@ interface Project {
 
 interface ProjectCardProps {
   project: Project
+  role?: "MANAGER" | "MEMBER"
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, role = "MANAGER" }: ProjectCardProps) {
   const taskCount = project._count?.tasks || 0
+  const isManager = role === "MANAGER"
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{project.title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>{project.title}</CardTitle>
+          {!isManager && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="h-3 w-3" /> Shared
+            </Badge>
+          )}
+        </div>
         <CardDescription className="line-clamp-2">{project.description}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -46,10 +55,16 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <KanbanSquare className="mr-2 h-4 w-4" /> View Board
             </Link>
           </Button>
-        ) : (
+        ) : isManager ? (
           <Button asChild>
             <Link href={`/projects/${project.id}/generate`}>
               <Sparkles className="mr-2 h-4 w-4" /> Generate Tasks
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild variant="outline">
+            <Link href={`/projects/${project.id}/board`}>
+              <KanbanSquare className="mr-2 h-4 w-4" /> View Board
             </Link>
           </Button>
         )}
@@ -57,4 +72,3 @@ export function ProjectCard({ project }: ProjectCardProps) {
     </Card>
   )
 }
-

@@ -1,29 +1,32 @@
 import { NextResponse } from "next/server"
 import { createServerComponentClient } from "@/lib/supabase-server"
-import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await params
     const supabase = await createServerComponentClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { status } = await request.json()
 
-    // Find the task and verify ownership
+    // Find the task and verify access
     const task = await db.task.findUnique({
       where: {
         id: id,
       },
       include: {
-        project: true,
+        project: {
+          include: {
+            members: true,
+          },
+        },
       },
     })
 
@@ -31,7 +34,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Task not found" }, { status: 404 })
     }
 
-    if (task.project.userId !== session.user.id) {
+    // Allow owner OR any project member to update task status
+    const isOwner = task.project.userId === user.id
+    const isMember = task.project.members.some((m) => m.userId === user.id || m.email === user.email?.toLowerCase())
+
+    if (!isOwner && !isMember) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -51,4 +58,3 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-
